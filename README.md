@@ -1,6 +1,6 @@
-# cdp-template
+# Issue Collector
 
-Template Repository with Chrome DevTools Protocol
+Visit Websites and Collect Audit Issues with CDP
 
 ## Usage
 
