@@ -16,6 +16,18 @@ const main = async () => {
     console.warn({ type: 'log', url, entry: entry?.text })
   })
   await client.Log.enable()
+  // Ref. https://github.com/ChromeDevTools/devtools-frontend/blob/3c7eedcd60a29c2877d06e948e4c95cbc34e56e8/front_end/sdk/LogModel.js#L23-L31
+  await client.Log.startViolationsReport({
+    config: [
+      { name: 'longTask', threshold: 200 },
+      { name: 'longLayout', threshold: 30 },
+      { name: 'blockedEvent', threshold: 100 },
+      { name: 'blockedParser', threshold: -1 },
+      { name: 'handler', threshold: 150 },
+      { name: 'recurringHandler', threshold: 50 },
+      { name: 'discouragedAPIUse', threshold: -1 },
+    ],
+  })
   await client.Audits.issueAdded(({ issue }) => {
     issues.push({ type: 'issue', url, issue })
     console.warn({ type: 'issue', url, issue: issue?.code })
@@ -45,6 +57,7 @@ const main = async () => {
     await client.Target.closeTarget({ targetId })
   }
 
+  await client.Log.stopViolationsReport()
   await client.Log.disable()
   await client.Audits.disable()
   await client.Runtime.disable()
