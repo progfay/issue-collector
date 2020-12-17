@@ -35,8 +35,14 @@ const main = async () => {
 
   for (let i = 0; i < urlList.length; i++) {
     url = urlList[i]
+    console.warn(url)
+    const { targetId } = await client.Target.createTarget({
+      url: 'about:blank',
+    })
+    await client.Target.activateTarget({ targetId })
     await client.Page.navigate({ url })
     await client.Page.loadEventFired()
+    await client.Target.closeTarget({ targetId })
   }
 
   await client.Log.disable()
