@@ -21,6 +21,16 @@ const main = async () => {
     console.warn({ type: 'issue', url, issue: issue?.code })
   })
   await client.Audits.enable()
+  client.Runtime.consoleAPICalled(message => {
+    issues.push({ type: 'console', url, message })
+    console.warn({ type: 'console', url, message })
+  })
+  await client.Runtime.enable()
+  client.Security.securityStateChanged(security => {
+    issues.push({ type: 'security', url, security })
+    console.warn({ type: 'security', url, security })
+  })
+  await client.Security.enable()
   await client.Page.enable()
 
   for (let i = 0; i < urlList.length; i++) {
@@ -30,6 +40,9 @@ const main = async () => {
   }
 
   await client.Log.disable()
+  await client.Audits.disable()
+  await client.Runtime.disable()
+  await client.Security.disable()
   await client.Page.disable()
   await client.close()
 
