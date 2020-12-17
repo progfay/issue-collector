@@ -11,12 +11,14 @@ const main = async () => {
   let url = ''
   const issues = []
 
-  await client.Log.entryAdded(entry => {
+  await client.Log.entryAdded(({ entry }) => {
     issues.push({ type: 'log', url, entry })
+    console.warn({ type: 'log', url, entry: entry?.text })
   })
   await client.Log.enable()
-  await client.Audits.issueAdded(issue => {
-    issues.push({ type: 'log', url, issue })
+  await client.Audits.issueAdded(({ issue }) => {
+    issues.push({ type: 'issue', url, issue })
+    console.warn({ type: 'issue', url, issue: issue?.code })
   })
   await client.Audits.enable()
   await client.Page.enable()
@@ -31,7 +33,7 @@ const main = async () => {
   await client.Page.disable()
   await client.close()
 
-  console.log(JSON.stringify(issues, undefined, 2))
+  console.log(JSON.stringify(issues))
 }
 
 main().catch(console.error)
