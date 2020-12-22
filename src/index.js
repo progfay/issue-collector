@@ -41,6 +41,18 @@ const main = async () => {
 
   await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].enable()))
 
+  const detectingScript = await client.Page.addScriptToEvaluateOnNewDocument({
+    source: `
+        (function (target, prop) {
+          let value = 'default'
+          Object.defineProperty(target, prop, {
+            get: () => value,
+            set: v => { value = v },
+          })
+        })(Notification, 'permission')
+      `,
+  })
+
   // Ref. https://github.com/ChromeDevTools/devtools-frontend/blob/3c7eedcd60a29c2877d06e948e4c95cbc34e56e8/front_end/sdk/LogModel.js#L23-L31
   await client.Log.startViolationsReport({
     config: [
@@ -67,6 +79,7 @@ const main = async () => {
   }
 
   await Promise.all(unsubscribeFunctions.map(fun => fun()))
+  await client.Page.removeScriptToEvaluateOnNewDocument(detectingScript)
   await client.Log.stopViolationsReport()
   await client.Log.clear()
   await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].disable()))
