@@ -1,21 +1,40 @@
 const CDP = require('chrome-remote-interface')
+const urls = require('./urls')
 
-const urlList = ['http://localhost:8000']
+const SUBSCRIBE_DOMAINS = ['Log', 'Audits', 'Runtime', 'Security', 'Page']
 
 const main = async () => {
   const client = await CDP({
     port: 9222,
     host: process.env.CHROME_HOST ?? 'localhost',
   })
+  console.warn(await client.Browser.getVersion())
 
   let url = ''
   const issues = []
 
-  await client.Log.entryAdded(({ entry }) => {
-    issues.push({ type: 'log', url, entry })
-    console.warn({ type: 'log', url, entry: entry?.text })
-  })
-  await client.Log.enable()
+  const unsubscribeFunctions = await Promise.all([
+    client.Log.entryAdded(({ entry }) => {
+      issues.push({ type: 'log', url, entry })
+      console.warn({ type: 'log', url, entry: entry?.text })
+    }),
+    client.Audits.issueAdded(({ issue }) => {
+      issues.push({ type: 'issue', url, issue })
+      console.warn({ type: 'issue', url, issue: issue?.code })
+    }),
+    client.Runtime.consoleAPICalled(message => {
+      issues.push({ type: 'console', url, message })
+      console.warn({ type: 'console', url, message })
+    }),
+    client.Security.securityStateChanged(security => {
+      if (['secure', 'neutral'].includes(security.securityState)) return
+      issues.push({ type: 'security', url, security })
+      console.warn({ type: 'security', url, security })
+    }),
+  ])
+
+  await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].enable()))
+
   // Ref. https://github.com/ChromeDevTools/devtools-frontend/blob/3c7eedcd60a29c2877d06e948e4c95cbc34e56e8/front_end/sdk/LogModel.js#L23-L31
   await client.Log.startViolationsReport({
     config: [
@@ -28,25 +47,9 @@ const main = async () => {
       { name: 'discouragedAPIUse', threshold: -1 },
     ],
   })
-  await client.Audits.issueAdded(({ issue }) => {
-    issues.push({ type: 'issue', url, issue })
-    console.warn({ type: 'issue', url, issue: issue?.code })
-  })
-  await client.Audits.enable()
-  client.Runtime.consoleAPICalled(message => {
-    issues.push({ type: 'console', url, message })
-    console.warn({ type: 'console', url, message })
-  })
-  await client.Runtime.enable()
-  client.Security.securityStateChanged(security => {
-    issues.push({ type: 'security', url, security })
-    console.warn({ type: 'security', url, security })
-  })
-  await client.Security.enable()
-  await client.Page.enable()
 
-  for (let i = 0; i < urlList.length; i++) {
-    url = urlList[i]
+  for (let i = 0; i < urls.length; i++) {
+    url = urls[i]
     console.warn(url)
     const { targetId } = await client.Target.createTarget({
       url: 'about:blank',
@@ -57,12 +60,10 @@ const main = async () => {
     await client.Target.closeTarget({ targetId })
   }
 
+  await Promise.all(unsubscribeFunctions.map(fun => fun()))
   await client.Log.stopViolationsReport()
-  await client.Log.disable()
-  await client.Audits.disable()
-  await client.Runtime.disable()
-  await client.Security.disable()
-  await client.Page.disable()
+  await client.Log.clear()
+  await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].disable()))
   await client.close()
 
   console.log(JSON.stringify(issues))
