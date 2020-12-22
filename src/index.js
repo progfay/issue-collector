@@ -13,6 +13,12 @@ const main = async () => {
   let url = ''
   const issues = []
 
+  await client.Target.setAutoAttach({
+    autoAttach: true,
+    waitForDebuggerOnStart: false,
+    flatten: false,
+  })
+
   const unsubscribeFunctions = await Promise.all([
     client.Log.entryAdded(({ entry }) => {
       issues.push({ type: 'log', url, entry })
