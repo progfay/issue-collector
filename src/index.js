@@ -73,7 +73,15 @@ const main = async () => {
             get: () => value,
             set: v => { value = v },
           })
-        })(Notification, 'permission')
+        })(Notification, 'permission');
+
+        (function(target, prop) {
+          const original = target[prop]
+          target[prop] = function() {
+            console.log('Notification.requestPermission', arguments)
+            return original.apply(this, arguments)
+          }
+        })(Notification, 'requestPermission');
       `,
   })
 
