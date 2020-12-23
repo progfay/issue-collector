@@ -97,7 +97,16 @@ const main = async () => {
     })
     await client.Target.activateTarget({ targetId })
     await client.Page.navigate({ url })
-    await client.Page.loadEventFired()
+    const { timeout } = await Promise.race([
+      client.Page.loadEventFired().then(() => ({ timeout: false })),
+      new Promise(resolve => {
+        setTimeout(resolve, 45000)
+      }).then(() => ({ timeout: true })),
+    ])
+    if (timeout) {
+      issues.push({ type: 'timeout', url })
+      console.warn({ type: 'timeout', url })
+    }
     await client.Target.closeTarget({ targetId })
   }
 
