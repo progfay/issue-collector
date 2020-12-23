@@ -34,7 +34,7 @@ const main = async () => {
     }),
     client.Audits.issueAdded(({ issue }) => {
       issues.push({ type: 'issue', url, issue })
-      console.warn({ type: 'issue', url, issue: issue?.code })
+      console.warn({ type: 'issue', url, issue })
     }),
     client.Runtime.consoleAPICalled(message => {
       issues.push({ type: 'console', url, message })
@@ -119,14 +119,15 @@ const main = async () => {
     await client.ServiceWorker.unregister({ scopeURL: url })
   }
 
-  await Promise.all(unsubscribeFunctions.map(fun => fun()))
   await client.Page.removeScriptToEvaluateOnNewDocument(detectingScript)
+  await Promise.all(unsubscribeFunctions.map(fun => fun()))
+  await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].disable()))
   await client.Log.stopViolationsReport()
   await client.Log.clear()
-  await Promise.all(SUBSCRIBE_DOMAINS.map(domain => client[domain].disable()))
   await client.close()
 
   console.log(JSON.stringify(issues))
+  process.exit(0)
 }
 
 main().catch(console.error)
