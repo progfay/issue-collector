@@ -1,4 +1,5 @@
 const CDP = require('chrome-remote-interface')
+const { Certificate } = require('@fidm/x509')
 const urls = require('./urls')
 
 const SUBSCRIBE_DOMAINS = ['Log', 'Audits', 'Runtime', 'Security', 'Page']
@@ -36,6 +37,28 @@ const main = async () => {
       if (['secure', 'neutral'].includes(security.securityState)) return
       issues.push({ type: 'security', url, security })
       console.warn({ type: 'security', url, security })
+    }),
+    client.Security.securityStateChanged(security => {
+      const certificates = security.explanations.flatMap(
+        explanation => explanation.certificate,
+      )
+      for (const certificate of certificates) {
+        const x509cert =
+          '-----BEGIN CERTIFICATE-----\n' +
+          certificate.replace(/(.{64})/g, '$1\n') +
+          '\n-----END CERTIFICATE-----'
+        const { validTo, issuer } = Certificate.fromPEM(x509cert)
+        const daysLeft =
+          (validTo.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        if (daysLeft <= 30) {
+          const info = {
+            validTo,
+            issuer: issuer.commonName,
+          }
+          issues.push({ type: 'certificate', url, info })
+          console.warn({ type: 'certificate', url, info })
+        }
+      }
     }),
   ])
 
