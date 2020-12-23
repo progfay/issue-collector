@@ -23,23 +23,28 @@ const main = async () => {
 
   const unsubscribeFunctions = await Promise.all([
     client.Log.entryAdded(({ entry }) => {
+      if (!url) return
       issues.push({ type: 'log', url, entry })
       console.warn({ type: 'log', url, entry: entry?.text })
     }),
     client.Audits.issueAdded(({ issue }) => {
+      if (!url) return
       issues.push({ type: 'issue', url, issue })
       console.warn({ type: 'issue', url, issue })
     }),
     client.Runtime.consoleAPICalled(message => {
+      if (!url) return
       issues.push({ type: 'console', url, message })
       console.warn({ type: 'console', url, message })
     }),
     client.Security.securityStateChanged(security => {
+      if (!url) return
       if (['secure', 'neutral'].includes(security.securityState)) return
       issues.push({ type: 'security', url, security })
       console.warn({ type: 'security', url, security })
     }),
     client.Security.securityStateChanged(security => {
+      if (!url) return
       const certificates = security.explanations.flatMap(
         explanation => explanation.certificate,
       )
