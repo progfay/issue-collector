@@ -2,7 +2,14 @@ const CDP = require('chrome-remote-interface')
 const { Certificate } = require('@fidm/x509')
 const urls = require('./urls')
 
-const SUBSCRIBE_DOMAINS = ['Log', 'Audits', 'Runtime', 'Security', 'Page']
+const SUBSCRIBE_DOMAINS = [
+  'Log',
+  'Audits',
+  'Runtime',
+  'Security',
+  'ServiceWorker',
+  'Page',
+]
 
 const main = async () => {
   const client = await CDP({
@@ -108,6 +115,8 @@ const main = async () => {
       console.warn({ type: 'timeout', url })
     }
     await client.Target.closeTarget({ targetId })
+
+    await client.ServiceWorker.unregister({ scopeURL: url })
   }
 
   await Promise.all(unsubscribeFunctions.map(fun => fun()))
