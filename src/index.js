@@ -21,12 +21,6 @@ const main = async () => {
   let url = ''
   const issues = []
 
-  await client.Target.setAutoAttach({
-    autoAttach: true,
-    waitForDebuggerOnStart: false,
-    flatten: false,
-  })
-
   const unsubscribeFunctions = await Promise.all([
     client.Log.entryAdded(({ entry }) => {
       issues.push({ type: 'log', url, entry })
@@ -99,10 +93,6 @@ const main = async () => {
   for (let i = 0; i < urls.length; i++) {
     url = urls[i]
     console.warn(url)
-    const { targetId } = await client.Target.createTarget({
-      url: 'about:blank',
-    })
-    await client.Target.activateTarget({ targetId })
     await client.Page.navigate({ url })
     const { timeout } = await Promise.race([
       client.Page.loadEventFired().then(() => ({ timeout: false })),
@@ -114,7 +104,6 @@ const main = async () => {
       issues.push({ type: 'timeout', url })
       console.warn({ type: 'timeout', url })
     }
-    await client.Target.closeTarget({ targetId })
 
     await client.ServiceWorker.unregister({ scopeURL: url })
   }
